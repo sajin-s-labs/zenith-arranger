@@ -54,7 +54,7 @@ fun LandscapeWorkstationLayout(
             externalActiveNotes = uiState.midi.activeNotes,
             externalPitchBend = uiState.midi.pitchBend,
             externalModulation = uiState.midi.modulation,
-            modifier = Modifier.fillMaxWidth().height(120.dp)
+            modifier = Modifier.fillMaxWidth().height(96.dp)
         )
     }
 }
@@ -86,10 +86,10 @@ private fun LandscapeUpperRow(
             onSelectPreset = { viewModel.loadPreset(it) },
             onSelectTimeSig = { n, d -> viewModel.setTimeSignature(n, d) },
             onSaveBeat = onSaveBeat,
-            modifier = Modifier.width(360.dp).height(240.dp)
+            modifier = Modifier.weight(0.42f).fillMaxHeight()
         )
 
-        Column(modifier = Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Column(modifier = Modifier.weight(0.58f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             HorizontalPanelButtonsBar(selectedPanel = selectedPanel, onSelectPanel = onSelectPanel)
             when (selectedPanel) {
                 "MAIN" -> MainWorkstationRows(uiState.state, uiState.sections, viewModel, onAssignSample, Modifier.weight(1f))
@@ -117,7 +117,7 @@ fun PortraitWorkstationLayout(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier.fillMaxSize().safeDrawingPadding().padding(4.dp),
+        modifier = modifier.fillMaxSize().safeDrawingPadding().padding(horizontal = 4.dp, vertical = 2.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         PortraitTopRow(
@@ -136,7 +136,7 @@ fun PortraitWorkstationLayout(
             externalActiveNotes = uiState.midi.activeNotes,
             externalPitchBend = uiState.midi.pitchBend,
             externalModulation = uiState.midi.modulation,
-            modifier = Modifier.fillMaxWidth().height(135.dp)
+            modifier = Modifier.fillMaxWidth().height(105.dp)
         )
     }
 }
@@ -153,7 +153,7 @@ private fun PortraitTopRow(
     viewModel: ArrangerViewModel,
     onSaveBeat: () -> Unit
 ) {
-    Row(modifier = Modifier.fillMaxWidth().height(240.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+    Row(modifier = Modifier.fillMaxWidth().height(165.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         LcdDisplayBar(
             styleName = uiState.currentPresetName,
             styleGenre = styleGenre,
@@ -165,9 +165,13 @@ private fun PortraitTopRow(
             onSelectPreset = { viewModel.loadPreset(it) },
             onSelectTimeSig = { n, d -> viewModel.setTimeSignature(n, d) },
             onSaveBeat = onSaveBeat,
-            modifier = Modifier.width(360.dp).height(240.dp)
+            modifier = Modifier.weight(1f).fillMaxHeight()
         )
-        VerticalPanelButtonsStrip(selectedPanel = selectedPanel, onSelectPanel = onSelectPanel, modifier = Modifier.weight(1f).fillMaxHeight())
+        VerticalPanelButtonsStrip(
+            selectedPanel = selectedPanel,
+            onSelectPanel = onSelectPanel,
+            modifier = Modifier.width(52.dp).fillMaxHeight()
+        )
     }
 }
 
