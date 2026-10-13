@@ -1,0 +1,26 @@
+# Gradle / Android Studio
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build/
+/app/build/
+/captures
+.externalNativeBuild/
+.cxx/
+.kotlin/
+
+# Output binaries
+*.apk
+*.aab
+*.ap_
+output-metadata.json
+
+# Keystores & credentials
+*.keystore
+*.jks
+signing.properties
+
+# OS generated
+Thumbs.db
