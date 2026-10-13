@@ -1,6 +1,7 @@
 package com.zenitharranger.model
 
 import android.content.Context
+import android.os.Build
 import android.os.Environment
 import org.json.JSONArray
 import org.json.JSONObject
@@ -12,35 +13,45 @@ object BeatPresetManager {
         name.trim().replace("\\s+".toRegex(), "_").replace("[\\\\/:*?\"<>|]".toRegex(), "")
 
     fun getStylesDir(context: Context): File {
-        val pubZenith = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "ZenithArranger/Styles")
-        val pubLegacy = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "ZenithArranger/Styles")
-        if (pubLegacy.exists() && !pubZenith.exists()) {
-            pubLegacy.copyRecursively(pubZenith, overwrite = false)
-        }
-        if (pubZenith.exists() || pubZenith.mkdirs()) return pubZenith
-        if (pubLegacy.exists()) return pubLegacy
-        val ext = context.getExternalFilesDir("Styles")
-        if (ext != null && (ext.exists() || ext.mkdirs())) return ext
+        // 1. App-specific external storage (requires ZERO permissions across all Android versions)
+        try {
+            val ext = context.getExternalFilesDir("Styles")
+            if (ext != null && (ext.exists() || ext.mkdirs())) return ext
+        } catch (_: Exception) {}
+
+        // 2. Public Music folder only if MANAGE_EXTERNAL_STORAGE was explicitly granted
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && Environment.isExternalStorageManager()) {
+                val pubZenith = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "ZenithArranger/Styles")
+                if (pubZenith.exists() || pubZenith.mkdirs()) return pubZenith
+            }
+        } catch (_: Exception) {}
+
+        // 3. Fallback: Internal app sandbox storage
         val fb = File(context.filesDir, "styles")
         if (!fb.exists()) fb.mkdirs()
         return fb
     }
 
     fun ensureInitialized(context: Context) {
-        val root = getStylesDir(context)
-        val factoryDir = File(root, "Factory")
-        val userDir = File(root, "User")
-        File(userDir, "My_Beats").mkdirs()
+        try {
+            val root = getStylesDir(context)
+            val factoryDir = File(root, "Factory")
+            val userDir = File(root, "User")
+            File(userDir, "My_Beats").mkdirs()
 
-        getFactoryPresets().forEach { preset ->
-            val cleanFolder = sanitizeName(preset.folder)
-            val cleanName = sanitizeName(preset.name)
-            val styleDir = File(File(factoryDir, cleanFolder), cleanName)
-            styleDir.mkdirs()
-            val manifest = File(styleDir, "style.json")
-            if (!manifest.exists()) {
-                manifest.writeText(serializePreset(preset.copy(id = cleanName, folder = cleanFolder)).toString(2))
+            getFactoryPresets().forEach { preset ->
+                val cleanFolder = sanitizeName(preset.folder)
+                val cleanName = sanitizeName(preset.name)
+                val styleDir = File(File(factoryDir, cleanFolder), cleanName)
+                styleDir.mkdirs()
+                val manifest = File(styleDir, "style.json")
+                if (!manifest.exists()) {
+                    manifest.writeText(serializePreset(preset.copy(id = cleanName, folder = cleanFolder)).toString(2))
+                }
             }
+        } catch (_: Exception) {
+            // Failsafe: never crash app on storage initialization
         }
     }
 

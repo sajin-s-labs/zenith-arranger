@@ -59,24 +59,30 @@ class MidiDeviceManager(
     }
 
     fun start() {
-        midiManager?.registerDeviceCallback(deviceCallback, mainHandler)
-        scanAndConnect()
+        try {
+            midiManager?.registerDeviceCallback(deviceCallback, mainHandler)
+            scanAndConnect()
+        } catch (_: Throwable) {}
     }
 
     fun stop() {
-        midiManager?.unregisterDeviceCallback(deviceCallback)
-        disconnectCurrent()
+        try {
+            midiManager?.unregisterDeviceCallback(deviceCallback)
+            disconnectCurrent()
+        } catch (_: Throwable) {}
     }
 
     fun scanAndConnect() {
-        if (midiManager == null) return
-        val devices = midiManager.devices
-        val target = devices.firstOrNull { it.outputPortCount > 0 }
-        if (target != null && activeDevice?.info?.id != target.id) {
-            connectToDevice(target)
-        } else if (target == null && _isDeviceConnected.value) {
-            disconnectCurrent()
-        }
+        try {
+            if (midiManager == null) return
+            val devices = midiManager.devices ?: return
+            val target = devices.firstOrNull { it.outputPortCount > 0 }
+            if (target != null && activeDevice?.info?.id != target.id) {
+                connectToDevice(target)
+            } else if (target == null && _isDeviceConnected.value) {
+                disconnectCurrent()
+            }
+        } catch (_: Throwable) {}
     }
 
     private fun connectToDevice(info: MidiDeviceInfo) {

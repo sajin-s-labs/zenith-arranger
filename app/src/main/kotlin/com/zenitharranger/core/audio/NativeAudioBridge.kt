@@ -30,7 +30,11 @@ data class ArrangerState(
 object NativeAudioBridge {
 
     init {
-        System.loadLibrary("zenith_arranger_native")
+        try {
+            System.loadLibrary("zenith_arranger_native")
+        } catch (t: Throwable) {
+            android.util.Log.e("NativeAudioBridge", "Failed to load zenith_arranger_native", t)
+        }
     }
 
     private external fun nativeStart(): Boolean
