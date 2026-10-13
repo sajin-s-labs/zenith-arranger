@@ -15,11 +15,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Java 17
+      - name: Setup Java 21 (Required for AGP 9.1 & Gradle 9.3)
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
       - name: Accept Licenses & Install SDK 35, NDK & CMake
         run: |
@@ -34,3 +34,12 @@ jobs:
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace
+
+      - name: Upload Logs on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-failure-reports
+          path: |
+            **/build/reports/
+            **/build/outputs/logs/
