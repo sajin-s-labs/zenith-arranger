@@ -37,20 +37,37 @@ fun ArrangerScreen(
     var targetSectionForAssign by remember { mutableStateOf<ArrangerSection?>(null) }
 
     val wavPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null && targetSectionForAssign != null) {
-            val sec = targetSectionForAssign!!
-            if (selectedPanel == "STYLE" || selectedPanel == "STYLE CREATOR") {
-                viewModel.assignCreatorSample(context, uri, sec)
+        val sec = targetSectionForAssign
+        if (uri != null && sec != null) {
+            val isCreator = selectedPanel == "STYLE" || selectedPanel == "STYLE CREATOR"
+            val bars = if (sec.bars > 0) sec.bars else (if (sec.type == ArrangerSectionType.FILL || sec.type == ArrangerSectionType.BREAK) 1 else 2)
+            if (isCreator) {
+                viewModel.assignCreatorSample(context, uri, sec, bars)
             } else {
-                val defaultBars = if (sec.type == ArrangerSectionType.FILL || sec.type == ArrangerSectionType.BREAK) 1 else 2
-                viewModel.assignSample(context, uri, sec, uiState.state.bpm, defaultBars)
+                viewModel.assignSample(context, uri, sec, uiState.mainBpm, bars)
             }
-            targetSectionForAssign = null
+        }
+        targetSectionForAssign = null
+    }
+
+    val onSelectPanel: (String) -> Unit = { panel ->
+        if (panel != selectedPanel) {
+            val prev = selectedPanel
+            selectedPanel = panel
+            val isEnteringCreator = (panel == "STYLE" || panel == "STYLE CREATOR") && (prev != "STYLE" && prev != "STYLE CREATOR")
+            val isEnteringMain = panel == "MAIN" && (prev == "STYLE" || prev == "STYLE CREATOR")
+            if (isEnteringCreator) {
+                viewModel.onEnterStyleCreator()
+            } else if (isEnteringMain) {
+                viewModel.onEnterMainWorkstation()
+            }
         }
     }
 
     val activeSection = uiState.sections.find { it.id == uiState.state.activeSlot }
     val queuedSection = uiState.sections.find { it.id == uiState.state.queuedSlot }
+    val activeSectionName = activeSection?.name ?: if (uiState.state.activeSlot == "break_1") "Break" else uiState.state.activeSlot.replace("_", " ").uppercase()
+    val queuedSectionName = queuedSection?.name ?: if (uiState.state.queuedSlot == "break_1") "Break" else if (uiState.state.queuedSlot.isNotBlank()) uiState.state.queuedSlot.replace("_", " ").uppercase() else null
     val currentPreset = uiState.savedPresets.find { it.name == uiState.currentPresetName }
     val styleGenre = currentPreset?.genre ?: "POP & ROCK"
     val accentColor = Color(currentPreset?.accentColorHex ?: 0xFFFF7043)
@@ -61,10 +78,10 @@ fun ArrangerScreen(
                 uiState = uiState,
                 styleGenre = styleGenre,
                 accentColor = accentColor,
-                activeSectionName = activeSection?.name ?: "",
-                queuedSectionName = queuedSection?.name,
+                activeSectionName = activeSectionName,
+                queuedSectionName = queuedSectionName,
                 selectedPanel = selectedPanel,
-                onSelectPanel = { selectedPanel = it },
+                onSelectPanel = onSelectPanel,
                 viewModel = viewModel,
                 onSaveBeat = { showSaveDialog = true },
                 onAddSection = { showAddSectionDialog = true },
@@ -75,10 +92,10 @@ fun ArrangerScreen(
                 uiState = uiState,
                 styleGenre = styleGenre,
                 accentColor = accentColor,
-                activeSectionName = activeSection?.name ?: "",
-                queuedSectionName = queuedSection?.name,
+                activeSectionName = activeSectionName,
+                queuedSectionName = queuedSectionName,
                 selectedPanel = selectedPanel,
-                onSelectPanel = { selectedPanel = it },
+                onSelectPanel = onSelectPanel,
                 viewModel = viewModel,
                 onSaveBeat = { showSaveDialog = true },
                 onAddSection = { showAddSectionDialog = true },

@@ -8,10 +8,11 @@
 #include <mutex>
 #include "SampleBuffer.h"
 #include "TransitionManager.h"
+#include "SynthVoice.h"
 
 /**
  * AudioEngine — Real-time Arranger Engine with dynamic sections,
- * custom time signatures, and measure-accurate quantization.
+ * polyphonic piano synth, custom time signatures, and measure-accurate quantization.
  */
 class AudioEngine : public oboe::AudioStreamDataCallback,
                     public oboe::AudioStreamErrorCallback {
@@ -40,6 +41,18 @@ public:
 
     void removeSection(const std::string& slotId);
     void clearAllSections();
+
+    // Native Piano Synth Integration (Zero-Latency C++ Engine)
+    void noteOn(int midiNote, float velocity);
+    void noteOff(int midiNote);
+    void allNotesOff();
+    void setPitchBend(float bendFactor);
+    void setModulation(float modulation);
+
+    void setSyncLatencyOffset(int latencyMs);
+    int getSyncLatencyOffset() const;
+    void setMidiClockLocked(bool locked);
+    void onMidiClockPulse();
 
     void getArrangerState(
         int* isPlaying,
@@ -79,6 +92,7 @@ private:
     std::mutex mSlotsMutex;
     std::unordered_map<std::string, std::shared_ptr<SectionSlot>> mSlots;
     TransitionManager mTransitionManager;
+    SynthVoice mSynthVoice;
 
     std::atomic<int> mCurrentBeat{1};
     std::atomic<int> mCurrentBar{1};
@@ -89,5 +103,10 @@ private:
     std::atomic<int> mTimeSigDen{4};
 
     int mSampleRate = 48000;
-    double mBeatFrameAccumulator = 0.0;
+    double mEmptyBreakPlayhead = 0.0;
+
+    std::atomic<int> mSyncLatencyOffsetMs{25}; // 25ms default output buffer compensation
+    std::atomic<bool> mMidiClockLocked{false};
+    std::atomic<int64_t> mMidiPulseCount{0};
+    std::atomic<double> mPhaseCorrectionRatio{1.0};
 };

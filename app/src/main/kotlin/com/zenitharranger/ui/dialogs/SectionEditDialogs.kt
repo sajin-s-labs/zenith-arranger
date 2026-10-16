@@ -120,7 +120,8 @@ fun AddSectionDialog(
 }
 
 /**
- * Dialog for configuring sample metadata when loading a WAV loop into a section.
+ * Dialog for configuring sample metadata when loading a DAW WAV loop into a section.
+ * Supports the 1-tempo style workflow with quick 1, 2, 4, 8 bar chunk selectors.
  */
 @Composable
 fun SampleAssignDialog(
@@ -131,36 +132,72 @@ fun SampleAssignDialog(
     onDismiss: () -> Unit,
     onConfirm: (Float, Int) -> Unit
 ) {
-    var bpmText by remember { mutableStateOf(initialBpm.toInt().toString()) }
-    var barsText by remember { mutableStateOf(initialBars.toString()) }
+    var selectedBars by remember { mutableIntStateOf(initialBars.coerceAtLeast(1)) }
+    val masterBpm = initialBpm.coerceIn(30f, 300f)
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Assign WAV: $sectionName", fontSize = 15.sp, fontWeight = FontWeight.Bold) },
+        title = { Text("Assign Loop: $sectionName", fontSize = 15.sp, fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("File: $fileName", color = Color.Gray, fontSize = 12.sp)
-                OutlinedTextField(
-                    value = bpmText,
-                    onValueChange = { bpmText = it },
-                    label = { Text("Sample BPM") },
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = barsText,
-                    onValueChange = { barsText = it },
-                    label = { Text("Bars in Sample") },
-                    singleLine = true
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("File: $fileName", color = Color(0xFF94A3B8), fontSize = 11.5.sp)
+
+                // Master Tempo Info Box
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color(0xFF1E293B),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        Text("Style Master Tempo:", fontSize = 12.sp, color = Color(0xFFCBD5E1))
+                        Text("${masterBpm.toInt()} BPM", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFFB03A))
+                    }
+                }
+
+                Text("DAW Loop Length (Bars):", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    listOf(1, 2, 4, 8).forEach { b ->
+                        val isSelected = selectedBars == b
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(if (isSelected) Color(0xFFFFB03A) else Color(0xFF222633))
+                                .clickable { selectedBars = b }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = androidx.compose.ui.Alignment.Center
+                        ) {
+                            Text(
+                                "$b Bar${if (b > 1) "s" else ""}",
+                                color = if (isSelected) Color.Black else Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
-            Button(onClick = {
-                val b = bpmText.toFloatOrNull() ?: initialBpm
-                val bars = barsText.toIntOrNull() ?: initialBars
-                onConfirm(b, bars)
-            }) { Text("Assign") }
+            Button(
+                onClick = { onConfirm(masterBpm, selectedBars) },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
+            ) {
+                Text("Assign Loop", fontWeight = FontWeight.Bold)
+            }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = Color.Gray)
+            }
+        }
     )
 }

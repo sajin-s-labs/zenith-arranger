@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstring>
 #include <algorithm>
+#include <atomic>
 #include "SampleBuffer.h"
 
 #ifndef M_PI
@@ -26,21 +27,28 @@ struct SectionSlot {
     std::string displayName;
     SectionType type = SectionType::CONTINUOUS_MAIN;
     int bars = 2;
+    std::string filePath;
     std::shared_ptr<SampleBuffer> sample;
 };
 
 /**
  * TransitionManager
- * Sample-accurate musical quantization and anti-pop cosine crossfader.
+ * Sample-accurate musical quantization, dual-mode break, and anti-pop cosine crossfader.
  */
 class TransitionManager {
 public:
     TransitionManager() = default;
 
     void reset() {
-        mQueuedSlot = nullptr;
+        mQueuedSlot.store(nullptr, std::memory_order_release);
+        mPendingQueuedSlot = nullptr;
+        mActiveSlot = nullptr;
+        mReturnTargetSlot = nullptr;
+        mOutgoingSample = nullptr;
+        mIncomingSample = nullptr;
         mIsCrossfading = false;
         mCrossfadeRemaining = 0;
+        mCrossfadeTotal = 0;
         mPlayhead = 0.0;
         mOutgoingPlayhead = 0.0;
     }
@@ -52,36 +60,57 @@ public:
         }
     }
 
+    void setReturnTargetSlot(const std::shared_ptr<SectionSlot>& slot) {
+        mReturnTargetSlot = slot;
+    }
+
+    std::shared_ptr<SectionSlot> getReturnTargetSlot() const {
+        return mReturnTargetSlot;
+    }
+
+    std::shared_ptr<SectionSlot> getActiveSlot() const { return mActiveSlot; }
+    
+    std::string getActiveSlotId() const { 
+        return mActiveSlot ? mActiveSlot->id : ""; 
+    }
+    
+    std::string getQueuedSlotId() const { 
+        SectionSlot* q = mQueuedSlot.load(std::memory_order_acquire);
+        return q ? q->id : ""; 
+    }
+
     void queueTransition(const std::shared_ptr<SectionSlot>& slot, bool isPlaying) {
         if (!isPlaying) {
             setActiveSlot(slot);
-            mQueuedSlot = nullptr;
+            mQueuedSlot.store(nullptr, std::memory_order_release);
             mPlayhead = 0.0;
         } else {
-            mQueuedSlot = slot;
+            mPendingQueuedSlot = slot;
+            mQueuedSlot.store(slot.get(), std::memory_order_release);
         }
     }
 
     bool hasQueuedTransition() const {
-        return mQueuedSlot != nullptr;
+        return mQueuedSlot.load(std::memory_order_acquire) != nullptr;
     }
 
-    std::shared_ptr<SectionSlot> getActiveSlot() const { return mActiveSlot; }
-    std::string getActiveSlotId() const { return mActiveSlot ? mActiveSlot->id : ""; }
-    std::string getQueuedSlotId() const { return mQueuedSlot ? mQueuedSlot->id : ""; }
-
     void triggerDownbeatSwitch(int sampleRate) {
-        if (!mQueuedSlot || !mQueuedSlot->sample || !mQueuedSlot->sample->isValid()) {
-            mQueuedSlot = nullptr;
+        SectionSlot* queuedRaw = mQueuedSlot.exchange(nullptr, std::memory_order_acq_rel);
+        if (!queuedRaw) return;
+
+        bool isBreakWithoutSample = (queuedRaw->type == SectionType::BREAK && 
+            (!queuedRaw->sample || !queuedRaw->sample->isValid()));
+
+        if (!isBreakWithoutSample && (!queuedRaw->sample || !queuedRaw->sample->isValid())) {
             return;
         }
 
         mOutgoingSample = mActiveSlot ? mActiveSlot->sample : nullptr;
-        mIncomingSample = mQueuedSlot->sample;
+        mIncomingSample = queuedRaw->sample;
         mOutgoingPlayhead = mPlayhead;
         mPlayhead = 0.0;
 
-        mCrossfadeTotal = static_cast<int>(sampleRate * 0.010); // 10ms
+        mCrossfadeTotal = static_cast<int>(sampleRate * 0.010); // 10ms equal-power
         if (mCrossfadeTotal < 64) mCrossfadeTotal = 64;
         mCrossfadeRemaining = mCrossfadeTotal;
         mIsCrossfading = (mOutgoingSample != nullptr);
@@ -90,14 +119,13 @@ public:
             mReturnTargetSlot = mActiveSlot;
         }
 
-        mActiveSlot = mQueuedSlot;
-        mQueuedSlot = nullptr;
+        mActiveSlot = mPendingQueuedSlot;
+        mPendingQueuedSlot = nullptr;
     }
 
     void returnFromFill(int sampleRate) {
-        if (!mReturnTargetSlot || !mReturnTargetSlot->sample || !mReturnTargetSlot->sample->isValid()) {
-            return;
-        }
+        if (!mReturnTargetSlot) return;
+
         mOutgoingSample = mActiveSlot ? mActiveSlot->sample : nullptr;
         mIncomingSample = mReturnTargetSlot->sample;
         mOutgoingPlayhead = mPlayhead;
@@ -179,7 +207,8 @@ private:
     }
 
     std::shared_ptr<SectionSlot> mActiveSlot;
-    std::shared_ptr<SectionSlot> mQueuedSlot;
+    std::shared_ptr<SectionSlot> mPendingQueuedSlot;
+    std::atomic<SectionSlot*> mQueuedSlot{nullptr};
     std::shared_ptr<SectionSlot> mReturnTargetSlot;
 
     double mPlayhead = 0.0;

@@ -34,11 +34,13 @@ fun ArrangerTransportRow(
     onTapTempo: () -> Unit,
     transpose: Int,
     onTransposeDelta: (Int) -> Unit,
+    syncStart: Boolean = false,
+    onSyncStartToggle: () -> Unit = {},
+    syncStop: Boolean = false,
+    onSyncStopToggle: () -> Unit = {},
+    bpm: Int = state.bpm.toInt(),
     modifier: Modifier = Modifier
 ) {
-    var syncStart by remember { mutableStateOf(false) }
-    var syncStop by remember { mutableStateOf(false) }
-
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -51,20 +53,20 @@ fun ArrangerTransportRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Playback Buttons
-        Row(horizontalArrangement = Arrangement.spacedBy(3.5.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(horizontalArrangement = Arrangement.spacedBy(2.5.dp), verticalAlignment = Alignment.CenterVertically) {
             SoftGlowButton(
                 label = if (state.isPlaying) "■ STOP" else "▶ START",
                 isLit = state.isPlaying,
                 litColor = Color(0xFF10B981),
                 onClick = onPlayToggle,
-                modifier = Modifier.width(66.dp).height(28.dp)
+                modifier = Modifier.widthIn(min = 48.dp, max = 62.dp).height(28.dp)
             )
-            SoftGlowButton("SYNC ST", syncStart, Color(0xFFFFB03A), { syncStart = !syncStart }, Modifier.width(56.dp).height(28.dp))
-            SoftGlowButton("SYNC SP", syncStop, Color(0xFFFFB03A), { syncStop = !syncStop }, Modifier.width(56.dp).height(28.dp))
+            SoftGlowButton("SYNC ST", syncStart, Color(0xFFFFB03A), onSyncStartToggle, Modifier.widthIn(min = 40.dp, max = 50.dp).height(28.dp))
+            SoftGlowButton("SYNC SP", syncStop, Color(0xFFFFB03A), onSyncStopToggle, Modifier.widthIn(min = 40.dp, max = 50.dp).height(28.dp))
         }
 
         // Tempo Controls
-        TempoControlModule(state.bpm.toInt(), onBpmDelta, onTapTempo)
+        TempoControlModule(bpm, onBpmDelta, onTapTempo)
 
         // Transpose Controls
         TransposeControlModule(transpose, onTransposeDelta)
@@ -123,7 +125,7 @@ private fun TempoControlModule(bpm: Int, onBpmDelta: (Int) -> Unit, onTapTempo: 
         ) {
             Text("TAP", color = Color(0xFFFFB03A), fontSize = 8.sp, fontWeight = FontWeight.Bold)
         }
-        CompactJogWheel(onScrubBpm = onBpmDelta)
+        CompactJogWheel(onScrubBpm = onBpmDelta, modifier = Modifier.width(46.dp).height(18.dp))
     }
 }
 
@@ -138,10 +140,10 @@ private fun TransposeControlModule(transpose: Int, onTransposeDelta: (Int) -> Un
         horizontalArrangement = Arrangement.spacedBy(3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("TRANSPOSE", color = Color(0xFF7B889B), fontSize = 7.5.sp, fontWeight = FontWeight.Bold)
+        Text("TRSP", color = Color(0xFF7B889B), fontSize = 7.5.sp, fontWeight = FontWeight.Bold)
         SmallTransportBox("−") { onTransposeDelta(-1) }
         val sign = if (transpose > 0) "+$transpose" else "$transpose"
-        Text(sign, color = Color(0xFF38BDF8), fontSize = 9.5.sp, fontWeight = FontWeight.Bold)
+        Text(sign, color = Color(0xFF38BDF8), fontSize = 9.sp, fontWeight = FontWeight.Bold)
         SmallTransportBox("+") { onTransposeDelta(1) }
     }
 }
@@ -161,14 +163,12 @@ private fun SmallTransportBox(text: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun CompactJogWheel(onScrubBpm: (Int) -> Unit) {
+fun CompactJogWheel(onScrubBpm: (Int) -> Unit, modifier: Modifier = Modifier) {
     var dragAcc by remember { mutableFloatStateOf(0f) }
     var offset by remember { mutableFloatStateOf(0f) }
 
     Box(
-        modifier = Modifier
-            .width(46.dp)
-            .height(18.dp)
+        modifier = modifier
             .clip(RoundedCornerShape(3.dp))
             .background(Color(0xFF0A0D14))
             .pointerInput(Unit) {

@@ -87,7 +87,7 @@ fun getLedColumns(num: Int, den: Int): List<LedColSpec> = when {
         LedColSpec(0, listOf(1), true), LedColSpec(2, listOf(3), true),
         LedColSpec(4, listOf(5), true), LedColSpec(-1, emptyList(), false)
     )
-    num == 6 && den == 8 -> listOf(
+    num == 6 -> listOf(
         LedColSpec(0, listOf(1, 2), true), LedColSpec(3, listOf(4, 5), true),
         LedColSpec(6, listOf(7, 8), true), LedColSpec(9, listOf(10, 11), true)
     )
@@ -107,8 +107,12 @@ fun getLedColumns(num: Int, den: Int): List<LedColSpec> = when {
 
 /**
  * 4 thin sharp rectangular LED lines with micro circular sub-beat dots below each line.
- * Provides equal tick timing across all 5 locked time signatures:
- * 4/4 (8 ticks), 3/4 (6 ticks), 6/8 (12 ticks), 7/8 (7 ticks), 5/8 (5 ticks).
+ * Lines represent the actual time signature beats; dots are the sub-beat helpers:
+ * 4/4 (1 and 2 and 3 and 4 and): 8 ticks
+ * 3/4 (1 and 2 and 3 and): 6 ticks (Col 4 disabled)
+ * 6/8 (1 and and 2 and and 3 and and 4 and and): 12 ticks
+ * 7/8 (1 and and 2 and 3 and): 7 ticks (Col 4 disabled)
+ * 5/8 (1 and and 2 and): 5 ticks (Cols 3 & 4 disabled)
  */
 @Composable
 fun LedLineBarMeter(
@@ -133,7 +137,7 @@ fun LedLineBarMeter(
 @Composable
 private fun LedColumn(colIdx: Int, spec: LedColSpec, tickIndex: Int, isPlaying: Boolean) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        val isLineActive = isPlaying && spec.isEnabled && (spec.lineTick == tickIndex || spec.dotTicks.contains(tickIndex))
+        val isLineActive = isPlaying && spec.isEnabled && spec.lineTick == tickIndex
         val lineBase = if (colIdx == 0) Color(0xFFFFB03A) else Color(0xFF10B981)
         val lineGlow = if (colIdx == 0) Color(0xFFFFE082) else Color(0xFF6EE7B7)
 
@@ -144,7 +148,8 @@ private fun LedColumn(colIdx: Int, spec: LedColSpec, tickIndex: Int, isPlaying: 
                 .clip(RoundedCornerShape(0.8.dp))
                 .background(
                     if (isLineActive) androidx.compose.ui.graphics.Brush.verticalGradient(listOf(lineGlow, lineBase))
-                    else androidx.compose.ui.graphics.SolidColor(Color(0xFF0D1420))
+                    else if (spec.isEnabled) androidx.compose.ui.graphics.SolidColor(Color(0xFF0D1420))
+                    else androidx.compose.ui.graphics.SolidColor(Color(0xFF070B12))
                 )
                 .border(
                     0.8.dp,

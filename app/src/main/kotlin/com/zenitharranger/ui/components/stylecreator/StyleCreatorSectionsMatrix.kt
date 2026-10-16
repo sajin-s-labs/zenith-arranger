@@ -50,30 +50,30 @@ fun StyleCreatorSectionsMatrix(
         verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
         val intros = listOf(
-            CreatorSlotDef("INTRO 1", "sec_intro_1", ArrangerSectionType.INTRO, 2),
-            CreatorSlotDef("INTRO 2", "sec_intro_2", ArrangerSectionType.INTRO, 2),
-            CreatorSlotDef("INTRO 3", "sec_intro_3", ArrangerSectionType.INTRO, 2),
-            CreatorSlotDef("INTRO 4", "sec_intro_4", ArrangerSectionType.INTRO, 2)
+            CreatorSlotDef("INTRO 1", "intro_1", ArrangerSectionType.INTRO, 2),
+            CreatorSlotDef("INTRO 2", "intro_2", ArrangerSectionType.INTRO, 2),
+            CreatorSlotDef("INTRO 3", "intro_3", ArrangerSectionType.INTRO, 2),
+            CreatorSlotDef("INTRO 4", "intro_4", ArrangerSectionType.INTRO, 2)
         )
         val mains = listOf(
-            CreatorSlotDef("MAIN A", "sec_main_a", ArrangerSectionType.MAIN, 2),
-            CreatorSlotDef("MAIN B", "sec_main_b", ArrangerSectionType.MAIN, 2),
-            CreatorSlotDef("MAIN C", "sec_main_c", ArrangerSectionType.MAIN, 2),
-            CreatorSlotDef("MAIN D", "sec_main_d", ArrangerSectionType.MAIN, 2)
+            CreatorSlotDef("MAIN A", "main_1", ArrangerSectionType.MAIN, 2),
+            CreatorSlotDef("MAIN B", "main_2", ArrangerSectionType.MAIN, 2),
+            CreatorSlotDef("MAIN C", "main_3", ArrangerSectionType.MAIN, 2),
+            CreatorSlotDef("MAIN D", "main_4", ArrangerSectionType.MAIN, 2)
         )
         MatrixSubRow(intros, mains, sections, state, isLoadMode, isClearMode, blinkAlpha, Color(0xFFA78BFA), Color(0xFF60A5FA), onTriggerSection, onAssignSample, onRemoveSample)
 
         val endings = listOf(
-            CreatorSlotDef("END 1", "sec_end_1", ArrangerSectionType.ENDING, 2),
-            CreatorSlotDef("END 2", "sec_end_2", ArrangerSectionType.ENDING, 2),
-            CreatorSlotDef("END 3", "sec_end_3", ArrangerSectionType.ENDING, 2),
-            CreatorSlotDef("END 4", "sec_end_4", ArrangerSectionType.ENDING, 2)
+            CreatorSlotDef("END 1", "ending_1", ArrangerSectionType.ENDING, 2),
+            CreatorSlotDef("END 2", "ending_2", ArrangerSectionType.ENDING, 2),
+            CreatorSlotDef("END 3", "ending_3", ArrangerSectionType.ENDING, 2),
+            CreatorSlotDef("END 4", "ending_4", ArrangerSectionType.ENDING, 2)
         )
         val fills = listOf(
-            CreatorSlotDef("FILL A", "sec_fill_a", ArrangerSectionType.FILL, 1),
-            CreatorSlotDef("FILL B", "sec_fill_b", ArrangerSectionType.FILL, 1),
-            CreatorSlotDef("FILL C", "sec_fill_c", ArrangerSectionType.FILL, 1),
-            CreatorSlotDef("FILL D", "sec_fill_d", ArrangerSectionType.FILL, 1)
+            CreatorSlotDef("FILL A", "fill_1", ArrangerSectionType.FILL, 1),
+            CreatorSlotDef("FILL B", "fill_2", ArrangerSectionType.FILL, 1),
+            CreatorSlotDef("FILL C", "fill_3", ArrangerSectionType.FILL, 1),
+            CreatorSlotDef("FILL D", "fill_4", ArrangerSectionType.FILL, 1)
         )
         MatrixSubRow(endings, fills, sections, state, isLoadMode, isClearMode, blinkAlpha, Color(0xFFFB923C), Color(0xFFF472B6), onTriggerSection, onAssignSample, onRemoveSample)
 
@@ -107,11 +107,11 @@ private fun UserBreakSubRow(
 ) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.5.dp)) {
         (1..7).forEach { num ->
-            val def = CreatorSlotDef("USER $num", "sec_user_$num", ArrangerSectionType.CUSTOM, 2)
+            val def = CreatorSlotDef("USER $num", "custom_$num", ArrangerSectionType.CUSTOM, 2)
             val sec = findSlotSection(sections, def)
             StyleMatrixBtn(def.label, sec, state, isLoad, isClear, blinkAlpha, Color(0xFF34D399), onTrigger, onAssign, onRemove, Modifier.weight(1f).height(34.dp))
         }
-        val breakDef = CreatorSlotDef("BREAK", "sec_break", ArrangerSectionType.BREAK, 1)
+        val breakDef = CreatorSlotDef("BREAK", "break_1", ArrangerSectionType.BREAK, 1)
         val breakSec = findSlotSection(sections, breakDef)
         StyleMatrixBtn("BREAK", breakSec, state, isLoad, isClear, blinkAlpha, Color(0xFFFCD34D), onTrigger, onAssign, onRemove, Modifier.weight(1f).height(34.dp))
     }
@@ -124,9 +124,10 @@ fun StyleMatrixBtn(
     onTrigger: (String) -> Unit, onAssign: (ArrangerSection) -> Unit, onRemove: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isAssigned = section.samplePath.isNotBlank()
-    val isActive = isAssigned && state.activeSlot == section.id
-    val isQueued = isAssigned && state.queuedSlot == section.id
+    val isBreak = section.type == ArrangerSectionType.BREAK || section.id == "break_1"
+    val isAssigned = section.samplePath.isNotBlank() || isBreak
+    val isActive = (section.samplePath.isNotBlank() && state.activeSlot == section.id) || (isBreak && (state.activeSlot == "break_1" || state.activeSlot == section.id))
+    val isQueued = (section.samplePath.isNotBlank() && state.queuedSlot == section.id) || (isBreak && (state.queuedSlot == "break_1" || state.queuedSlot == section.id))
 
     val bgBrush = when {
         isClearMode && isAssigned -> Brush.radialGradient(listOf(Color(0xFFEF4444).copy(alpha = 0.5f), Color(0xFF261215)), radius = 55f)
@@ -160,10 +161,10 @@ fun StyleMatrixBtn(
             .padding(horizontal = 2.dp),
         contentAlignment = Alignment.Center
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.5.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             if (isAssigned) {
                 val ledAlpha = if (isQueued) blinkAlpha else if (isActive) 1f else 0.5f
-                Box(modifier = Modifier.size(4.5.dp).clip(CircleShape).background(themeColor.copy(alpha = ledAlpha)))
+                Box(modifier = Modifier.size(4.dp).clip(CircleShape).background(themeColor.copy(alpha = ledAlpha)))
             }
             val textColor = when {
                 isClearMode && isAssigned -> Color(0xFFEF4444)
@@ -171,7 +172,7 @@ fun StyleMatrixBtn(
                 isAssigned -> Color.White
                 else -> Color(0xFF4B5563)
             }
-            Text(label, color = textColor, fontSize = 8.5.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            Text(label, color = textColor, fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
         }
     }
 }

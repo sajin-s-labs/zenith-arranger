@@ -30,9 +30,7 @@ fun PortraitMainWorkstationRows(
     onAssignSample: (ArrangerSection) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var transpose by remember { mutableIntStateOf(0) }
-    var syncStart by remember { mutableStateOf(false) }
-    var syncStop by remember { mutableStateOf(false) }
+    val uiState by viewModel.uiState.collectAsState()
     val beatDurationMs = (60_000f / state.bpm.coerceAtLeast(30f)).toInt()
     val transition = rememberInfiniteTransition(label = "portraitBlink")
     val blinkAlpha by transition.animateFloat(
@@ -43,15 +41,27 @@ fun PortraitMainWorkstationRows(
         modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
-        PortraitTransportContainer(state, syncStart, syncStop, transpose, { viewModel.togglePlay() }, { syncStart = !syncStart }, { syncStop = !syncStop }, { viewModel.setBpmDelta(it) }, { viewModel.tapTempo() }, { transpose = (transpose + it).coerceIn(-12, 12) })
+        PortraitTransportContainer(
+            state = state,
+            bpm = uiState.mainBpm.toInt(),
+            syncStart = uiState.isSyncStartArmed,
+            syncStop = uiState.isSyncStopActive,
+            transpose = uiState.transpose,
+            onPlay = { viewModel.togglePlay() },
+            onSyncStart = { viewModel.toggleSyncStart() },
+            onSyncStop = { viewModel.toggleSyncStop() },
+            onBpm = { viewModel.setBpmDelta(it) },
+            onTap = { viewModel.tapTempo() },
+            onTrsp = { viewModel.setTransposeDelta(it) }
+        )
         PortraitSectionsContainer(sections, state, blinkAlpha, { viewModel.triggerSection(it) }, onAssignSample)
-        PortraitRegContainer(transpose, state.bpm.toInt())
+        PortraitRegContainer(uiState.transpose, uiState.mainBpm.toInt())
     }
 }
 
 @Composable
 private fun PortraitTransportContainer(
-    state: ArrangerState, syncStart: Boolean, syncStop: Boolean, transpose: Int,
+    state: ArrangerState, bpm: Int, syncStart: Boolean, syncStop: Boolean, transpose: Int,
     onPlay: () -> Unit, onSyncStart: () -> Unit, onSyncStop: () -> Unit,
     onBpm: (Int) -> Unit, onTap: () -> Unit, onTrsp: (Int) -> Unit
 ) {
@@ -64,7 +74,7 @@ private fun PortraitTransportContainer(
             SoftGlowButton("SYNC ST", syncStart, Color(0xFFFFB03A), onSyncStart, Modifier.weight(1f).fillMaxHeight())
             SoftGlowButton("SYNC SP", syncStop, Color(0xFFFFB03A), onSyncStop, Modifier.weight(1f).fillMaxHeight())
         }
-        PortraitTransportRow2(state.bpm.toInt(), onBpm, onTap, transpose, onTrsp)
+        PortraitTransportRow2(bpm, onBpm, onTap, transpose, onTrsp)
     }
 }
 
@@ -75,8 +85,8 @@ private fun PortraitTransportRow2(
 ) {
     Row(modifier = Modifier.fillMaxWidth().height(32.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
         Row(
-            modifier = Modifier.weight(1.2f).fillMaxHeight().clip(RoundedCornerShape(4.dp)).background(Color(0xFF141824)).padding(horizontal = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.weight(1.5f).fillMaxHeight().clip(RoundedCornerShape(4.dp)).background(Color(0xFF141824)).padding(horizontal = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically
         ) {
             PortraitStepBtn("−") { onBpm(-1) }
             Text("$bpm BPM", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
@@ -84,12 +94,13 @@ private fun PortraitTransportRow2(
             Box(Modifier.clip(RoundedCornerShape(3.dp)).background(Color(0xFF232B3C)).clickable { onTap() }.padding(horizontal = 4.dp, vertical = 2.dp)) {
                 Text("TAP", color = Color(0xFFFFB03A), fontSize = 7.5.sp, fontWeight = FontWeight.Bold)
             }
+            CompactJogWheel(onScrubBpm = onBpm, modifier = Modifier.weight(1f).height(18.dp))
         }
         Row(
             modifier = Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(4.dp)).background(Color(0xFF141824)).padding(horizontal = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("TRANSPOSE", color = Color(0xFF7B889B), fontSize = 7.sp, fontWeight = FontWeight.Bold)
+            Text("TRSP", color = Color(0xFF7B889B), fontSize = 7.sp, fontWeight = FontWeight.Bold)
             PortraitStepBtn("−") { onTrsp(-1) }
             val sign = if (transpose > 0) "+$transpose" else "$transpose"
             Text(sign, color = Color(0xFF38BDF8), fontSize = 9.sp, fontWeight = FontWeight.Bold)
@@ -125,7 +136,7 @@ private fun Portrait4SectionRow(
     Row(modifier = Modifier.fillMaxWidth().height(32.dp), horizontalArrangement = Arrangement.spacedBy(2.5.dp)) {
         labels.forEachIndexed { i, label ->
             val sec = findSection(sections, type, i)
-            MatrixHardwareButton(label, sec, state, blinkAlpha, themeColor, onTrigger, onAssign, Modifier.weight(1f).fillMaxHeight())
+            MatrixHardwareButton(label, sec, state, blinkAlpha, themeColor, type, i, onTrigger, onAssign, Modifier.weight(1f).fillMaxHeight())
         }
     }
 }
@@ -138,10 +149,10 @@ private fun PortraitUserBreakRow(
     Row(modifier = Modifier.fillMaxWidth().height(32.dp), horizontalArrangement = Arrangement.spacedBy(2.5.dp)) {
         listOf("USER 5", "USER 6", "USER 7").forEachIndexed { i, label ->
             val sec = findSection(sections, ArrangerSectionType.CUSTOM, i + 4)
-            MatrixHardwareButton(label, sec, state, blinkAlpha, Color(0xFF34D399), onTrigger, onAssign, Modifier.weight(1f).fillMaxHeight())
+            MatrixHardwareButton(label, sec, state, blinkAlpha, Color(0xFF34D399), ArrangerSectionType.CUSTOM, i + 4, onTrigger, onAssign, Modifier.weight(1f).fillMaxHeight())
         }
         val breakSec = findSection(sections, ArrangerSectionType.BREAK, 0)
-        MatrixHardwareButton("BREAK", breakSec, state, blinkAlpha, Color(0xFFFCD34D), onTrigger, onAssign, Modifier.weight(1f).fillMaxHeight())
+        MatrixHardwareButton("BREAK", breakSec, state, blinkAlpha, Color(0xFFFCD34D), ArrangerSectionType.BREAK, 0, onTrigger, onAssign, Modifier.weight(1f).fillMaxHeight())
     }
 }
 

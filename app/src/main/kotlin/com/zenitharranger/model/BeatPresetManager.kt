@@ -60,12 +60,13 @@ object BeatPresetManager {
             id = "Pop_Standard_4_4", name = "Pop Standard (4/4)", bpm = 120f,
             timeSigNum = 4, timeSigDen = 4, folder = "Pop_&_Rock", category = "Factory",
             sections = listOf(
-                ArrangerSection("main_a", "Main A", ArrangerSectionType.MAIN, 2),
-                ArrangerSection("fill_a", "Fill A", ArrangerSectionType.FILL, 1),
-                ArrangerSection("main_b", "Main B", ArrangerSectionType.MAIN, 2),
-                ArrangerSection("fill_b", "Fill B", ArrangerSectionType.FILL, 1),
-                ArrangerSection("intro", "Intro", ArrangerSectionType.INTRO, 2),
-                ArrangerSection("ending", "Ending", ArrangerSectionType.ENDING, 2)
+                ArrangerSection("main_1", "Main A", ArrangerSectionType.MAIN, 2),
+                ArrangerSection("fill_1", "Fill A", ArrangerSectionType.FILL, 1),
+                ArrangerSection("main_2", "Main B", ArrangerSectionType.MAIN, 2),
+                ArrangerSection("fill_2", "Fill B", ArrangerSectionType.FILL, 1),
+                ArrangerSection("intro_1", "Intro", ArrangerSectionType.INTRO, 2),
+                ArrangerSection("ending_1", "Ending", ArrangerSectionType.ENDING, 2),
+                ArrangerSection("break_1", "Break", ArrangerSectionType.BREAK, 1)
             )
         ),
         BeatPreset(
@@ -75,6 +76,7 @@ object BeatPresetManager {
                 ArrangerSection("waltz_a", "Main A", ArrangerSectionType.MAIN, 2),
                 ArrangerSection("waltz_fill", "Fill", ArrangerSectionType.FILL, 1),
                 ArrangerSection("waltz_b", "Main B", ArrangerSectionType.MAIN, 2),
+                ArrangerSection("break_1", "Break", ArrangerSectionType.BREAK, 1),
                 ArrangerSection("waltz_end", "Ending", ArrangerSectionType.ENDING, 2)
             )
         ),
@@ -84,6 +86,7 @@ object BeatPresetManager {
             sections = listOf(
                 ArrangerSection("balkan_groove", "Groove", ArrangerSectionType.MAIN, 2),
                 ArrangerSection("balkan_fill", "Break Fill", ArrangerSectionType.FILL, 1),
+                ArrangerSection("break_1", "Break", ArrangerSectionType.BREAK, 1),
                 ArrangerSection("balkan_climax", "Climax", ArrangerSectionType.MAIN, 2)
             )
         ),
@@ -94,6 +97,7 @@ object BeatPresetManager {
                 ArrangerSection("blues_verse", "Verse", ArrangerSectionType.MAIN, 2),
                 ArrangerSection("blues_fill", "Fill", ArrangerSectionType.FILL, 1),
                 ArrangerSection("blues_chorus", "Chorus", ArrangerSectionType.MAIN, 2),
+                ArrangerSection("break_1", "Break", ArrangerSectionType.BREAK, 1),
                 ArrangerSection("blues_outro", "Outro", ArrangerSectionType.ENDING, 2)
             )
         )

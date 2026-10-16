@@ -1,6 +1,8 @@
 package com.zenitharranger.ui.components.stylecreator
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -8,6 +10,7 @@ import androidx.compose.ui.unit.dp
 import com.zenitharranger.core.audio.ArrangerState
 import com.zenitharranger.core.audio.NativeAudioBridge
 import com.zenitharranger.model.ArrangerSection
+import com.zenitharranger.model.ArrangerSectionType
 import com.zenitharranger.model.BeatPresetManager
 import com.zenitharranger.model.StyleCreatorState
 import com.zenitharranger.ui.ArrangerViewModel
@@ -33,7 +36,7 @@ fun LandscapeStyleCreatorView(
         }
     }
 
-    Column(modifier = modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(3.5.dp)) {
         StyleCreatorHeader(
             styleTitle = creator.title,
             onTitleChange = { viewModel.setCreatorTitle(it) },
@@ -55,11 +58,11 @@ fun LandscapeStyleCreatorView(
             isLoadMode = creator.isLoadMode,
             isClearMode = creator.isClearMode,
             bpm = creator.bpm.toInt(),
-            onPlayToggle = { viewModel.togglePlay() },
+            onPlayToggle = { viewModel.toggleCreatorPlay() },
             onToggleLoadMode = { viewModel.toggleCreatorLoadMode() },
             onToggleClearMode = { viewModel.toggleCreatorClearMode() },
             onBpmDelta = { viewModel.setCreatorBpmDelta(it) },
-            onTapTempo = { viewModel.tapTempo() }
+            onTapTempo = { viewModel.tapCreatorTempo() }
         )
 
         StyleCreatorSectionsMatrix(
@@ -67,13 +70,7 @@ fun LandscapeStyleCreatorView(
             sections = creator.sections,
             isLoadMode = creator.isLoadMode,
             isClearMode = creator.isClearMode,
-            onTriggerSection = { secId ->
-                val sec = creator.sections.firstOrNull { it.id == secId }
-                if (sec != null && sec.samplePath.isNotBlank()) {
-                    NativeAudioBridge.addOrUpdateSection(sec.id, sec.name, sec.type.rawValue, sec.bars, sec.samplePath, sec.sampleBpm)
-                    NativeAudioBridge.triggerSection(sec.id)
-                }
-            },
+            onTriggerSection = { secId -> viewModel.triggerCreatorSection(secId) },
             onAssignSample = { sec -> onAssignSample(sec) },
             onRemoveSample = { secId -> viewModel.removeCreatorSample(secId) },
             modifier = Modifier.weight(1f)

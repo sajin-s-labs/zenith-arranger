@@ -35,6 +35,31 @@ public:
     int getSampleRate() const { return mSampleRate; }
     float getBpm() const { return mBpm; }
     int getBars() const { return mBars; }
+    const float* getData() const { return mData.data(); }
+
+    inline void readSingleFrameInterpolated(double playhead, float& outL, float& outR) const {
+        if (mData.empty() || mTotalFrames <= 0) {
+            outL = 0.0f;
+            outR = 0.0f;
+            return;
+        }
+        int total = mTotalFrames;
+        while (playhead < 0.0) playhead += total;
+        while (playhead >= total) playhead -= total;
+
+        int index0 = static_cast<int>(playhead);
+        int index1 = (index0 + 1 >= total) ? 0 : index0 + 1;
+        float frac = static_cast<float>(playhead - index0);
+
+        float l0 = mData[index0 * 2 + 0];
+        float l1 = mData[index1 * 2 + 0];
+        float r0 = mData[index0 * 2 + 1];
+        float r1 = mData[index1 * 2 + 1];
+
+        outL = l0 + (l1 - l0) * frac;
+        outR = r0 + (r1 - r0) * frac;
+    }
+
     float readChannelSample(int idx0, int idx1, float frac, int ch) const {
         if (mData.empty()) return 0.0f;
         float s0 = mData[idx0 * 2 + ch];

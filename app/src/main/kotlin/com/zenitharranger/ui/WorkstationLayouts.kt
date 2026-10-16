@@ -41,6 +41,14 @@ fun LandscapeWorkstationLayout(
     onAssignSample: (ArrangerSection) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val screenHeightDp = configuration.screenHeightDp
+    val pianoHeight = when {
+        screenHeightDp < 380 -> 76.dp
+        screenHeightDp < 500 -> 88.dp
+        else -> 105.dp
+    }
+
     Column(
         modifier = modifier.fillMaxSize().safeDrawingPadding().padding(horizontal = 4.dp, vertical = 2.dp),
         verticalArrangement = Arrangement.spacedBy(3.dp)
@@ -54,7 +62,14 @@ fun LandscapeWorkstationLayout(
             externalActiveNotes = uiState.midi.activeNotes,
             externalPitchBend = uiState.midi.pitchBend,
             externalModulation = uiState.midi.modulation,
-            modifier = Modifier.fillMaxWidth().height(96.dp)
+            transpose = uiState.transpose,
+            isTouchKeysEnabled = uiState.isTouchKeysEnabled,
+            isMidiPianoEnabled = uiState.midi.isMidiControlsPiano,
+            onToggleTouchKeys = { viewModel.toggleTouchKeysEnabled() },
+            onToggleMidiPiano = { viewModel.toggleMidiControlsPiano() },
+            onNoteDown = { viewModel.onNoteDown(it) },
+            onAllNotesUp = { viewModel.onAllNotesUp() },
+            modifier = Modifier.fillMaxWidth().height(pianoHeight)
         )
     }
 }
@@ -74,22 +89,26 @@ private fun LandscapeUpperRow(
     onAssignSample: (ArrangerSection) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val lcdWeight = if (configuration.screenWidthDp < 700) 0.38f else 0.42f
+    val controlWeight = 1f - lcdWeight
+
     Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         LcdDisplayBar(
             styleName = uiState.currentPresetName,
             styleGenre = styleGenre,
             accentColor = accentColor,
-            state = uiState.state,
+            state = uiState.state.copy(bpm = uiState.mainBpm),
             activeSectionName = activeSectionName,
             queuedSectionName = queuedSectionName,
             presets = uiState.savedPresets,
             onSelectPreset = { viewModel.loadPreset(it) },
             onSelectTimeSig = { n, d -> viewModel.setTimeSignature(n, d) },
             onSaveBeat = onSaveBeat,
-            modifier = Modifier.weight(0.42f).fillMaxHeight()
+            modifier = Modifier.weight(lcdWeight).fillMaxHeight()
         )
 
-        Column(modifier = Modifier.weight(0.58f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Column(modifier = Modifier.weight(controlWeight).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             HorizontalPanelButtonsBar(selectedPanel = selectedPanel, onSelectPanel = onSelectPanel)
             when (selectedPanel) {
                 "MAIN" -> MainWorkstationRows(uiState.state, uiState.sections, viewModel, onAssignSample, Modifier.weight(1f))
@@ -136,6 +155,13 @@ fun PortraitWorkstationLayout(
             externalActiveNotes = uiState.midi.activeNotes,
             externalPitchBend = uiState.midi.pitchBend,
             externalModulation = uiState.midi.modulation,
+            transpose = uiState.transpose,
+            isTouchKeysEnabled = uiState.isTouchKeysEnabled,
+            isMidiPianoEnabled = uiState.midi.isMidiControlsPiano,
+            onToggleTouchKeys = { viewModel.toggleTouchKeysEnabled() },
+            onToggleMidiPiano = { viewModel.toggleMidiControlsPiano() },
+            onNoteDown = { viewModel.onNoteDown(it) },
+            onAllNotesUp = { viewModel.onAllNotesUp() },
             modifier = Modifier.fillMaxWidth().height(105.dp)
         )
     }
@@ -158,7 +184,7 @@ private fun PortraitTopRow(
             styleName = uiState.currentPresetName,
             styleGenre = styleGenre,
             accentColor = accentColor,
-            state = uiState.state,
+            state = uiState.state.copy(bpm = uiState.mainBpm),
             activeSectionName = activeSectionName,
             queuedSectionName = queuedSectionName,
             presets = uiState.savedPresets,

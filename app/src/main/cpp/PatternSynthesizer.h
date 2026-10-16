@@ -25,9 +25,10 @@ public:
     ) {
         if (bars < 1) bars = 1;
         if (bpm < 20.0f) bpm = 120.0f;
-        const double beatSec = (60.0 * (4.0 / den)) / bpm;
+        const int beatsPerBar = (num == 6 && den == 8) ? 12 : num;
+        const double beatSec = (num == 6 && den == 8) ? ((60.0 / bpm) / 3.0) : ((60.0 * (4.0 / den)) / bpm);
         const int framesPerBeat = static_cast<int>(beatSec * sampleRate);
-        const int totalBeats = bars * num;
+        const int totalBeats = bars * beatsPerBar;
         const int totalFrames = totalBeats * framesPerBeat;
 
         std::vector<float> pcm(totalFrames * 2, 0.0f);
@@ -35,7 +36,7 @@ public:
         for (int b = 0; b < totalBeats; ++b) {
             int start = b * framesPerBeat;
             int hitFrames = std::min(sampleRate / 4, totalFrames - start);
-            int beatInBar = (b % num) + 1;
+            int beatInBar = (b % beatsPerBar);
 
             for (int f = 0; f < hitFrames; ++f) {
                 float env = 1.0f - static_cast<float>(f) / hitFrames;
@@ -55,13 +56,32 @@ public:
                     float noise = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX) - 0.5f) * 0.5f;
                     val = noise * env;
                 } else {
-                    if (beatInBar == 1) {
-                        val = std::sin(2.0 * M_PI * 55.0 * f / sampleRate) * 0.5f * env;
-                    } else if (beatInBar % 2 == 0) {
-                        float noise = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX) - 0.5f) * 0.35f;
-                        val = noise * env;
+                    bool isMainBeat = false;
+                    bool isDownbeat = (beatInBar == 0);
+
+                    if (num == 6 && den == 8) {
+                        isMainBeat = (beatInBar == 0 || beatInBar == 3 || beatInBar == 6 || beatInBar == 9);
+                    } else if (num == 7 && den == 8) {
+                        isMainBeat = (beatInBar == 0 || beatInBar == 3 || beatInBar == 5);
+                    } else if (num == 5 && den == 8) {
+                        isMainBeat = (beatInBar == 0 || beatInBar == 3);
                     } else {
-                        val = std::sin(2.0 * M_PI * 75.0 * f / sampleRate) * 0.3f * env;
+                        isMainBeat = true;
+                    }
+
+                    if (isDownbeat) {
+                        val = std::sin(2.0 * M_PI * 55.0 * f / sampleRate) * 0.5f * env;
+                    } else if (isMainBeat) {
+                        if (beatInBar % 2 == 1 && num == 4) {
+                            float noise = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX) - 0.5f) * 0.35f;
+                            val = noise * env;
+                        } else {
+                            val = std::sin(2.0 * M_PI * 75.0 * f / sampleRate) * 0.3f * env;
+                        }
+                    } else {
+                        // Sub-beat helper dot
+                        float noise = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX) - 0.5f) * 0.15f;
+                        val = noise * env * 0.4f;
                     }
                 }
                 pcm[(start + f) * 2 + 0] = val;

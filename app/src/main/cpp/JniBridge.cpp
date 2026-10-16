@@ -107,4 +107,58 @@ Java_com_zenitharranger_core_audio_NativeAudioBridge_nativeGetArrangerState(
     return strArray;
 }
 
+JNIEXPORT void JNICALL
+Java_com_zenitharranger_core_audio_NativeAudioBridge_nativeNoteOn(
+    JNIEnv*, jobject, jint noteNumber, jfloat velocity) {
+    AudioEngine::instance().noteOn(noteNumber, velocity);
+}
+
+JNIEXPORT void JNICALL
+Java_com_zenitharranger_core_audio_NativeAudioBridge_nativeNoteOff(
+    JNIEnv*, jobject, jint noteNumber) {
+    AudioEngine::instance().noteOff(noteNumber);
+}
+
+JNIEXPORT void JNICALL
+Java_com_zenitharranger_core_audio_NativeAudioBridge_nativeAllNotesOff(
+    JNIEnv*, jobject) {
+    AudioEngine::instance().allNotesOff();
+}
+
+JNIEXPORT void JNICALL
+Java_com_zenitharranger_core_audio_NativeAudioBridge_nativeSetPitchBend(
+    JNIEnv*, jobject, jfloat bendSemitones) {
+    AudioEngine::instance().setPitchBend(bendSemitones);
+}
+
+JNIEXPORT void JNICALL
+Java_com_zenitharranger_core_audio_NativeAudioBridge_nativeSetModulation(
+    JNIEnv*, jobject, jfloat amount) {
+    AudioEngine::instance().setModulation(amount);
+}
+
+JNIEXPORT void JNICALL
+Java_com_zenitharranger_core_audio_NativeAudioBridge_nativeSetSyncLatencyOffset(
+    JNIEnv*, jobject, jint latencyMs) {
+    AudioEngine::instance().setSyncLatencyOffset(latencyMs);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_zenitharranger_core_audio_NativeAudioBridge_nativeGetSyncLatencyOffset(
+    JNIEnv*, jobject) {
+    return AudioEngine::instance().getSyncLatencyOffset();
+}
+
+JNIEXPORT void JNICALL
+Java_com_zenitharranger_core_audio_NativeAudioBridge_nativeOnMidiClockPulse(
+    JNIEnv*, jobject) {
+    AudioEngine::instance().onMidiClockPulse();
+}
+
+JNIEXPORT void JNICALL
+Java_com_zenitharranger_core_audio_NativeAudioBridge_nativeSetMidiClockLocked(
+    JNIEnv*, jobject, jboolean locked) {
+    AudioEngine::instance().setMidiClockLocked(static_cast<bool>(locked));
+}
+
 } // extern "C"

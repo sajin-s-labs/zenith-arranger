@@ -55,6 +55,15 @@ object NativeAudioBridge {
     private external fun nativeRemoveSection(slotId: String)
     private external fun nativeClearAllSections()
     private external fun nativeGetArrangerState(stateArray: IntArray, bpmArray: FloatArray): Array<String>
+    private external fun nativeNoteOn(noteNumber: Int, velocity: Float)
+    private external fun nativeNoteOff(noteNumber: Int)
+    private external fun nativeAllNotesOff()
+    private external fun nativeSetPitchBend(bendSemitones: Float)
+    private external fun nativeSetModulation(amount: Float)
+    private external fun nativeSetSyncLatencyOffset(latencyMs: Int)
+    private external fun nativeGetSyncLatencyOffset(): Int
+    private external fun nativeOnMidiClockPulse()
+    private external fun nativeSetMidiClockLocked(locked: Boolean)
 
     fun start(): Boolean = nativeStart()
     fun stop() = nativeStop()
@@ -77,6 +86,16 @@ object NativeAudioBridge {
 
     fun removeSection(slotId: String) = nativeRemoveSection(slotId)
     fun clearAllSections() = nativeClearAllSections()
+
+    fun noteOn(noteNumber: Int, velocity: Float = 0.8f) = nativeNoteOn(noteNumber, velocity.coerceIn(0f, 1f))
+    fun noteOff(noteNumber: Int) = nativeNoteOff(noteNumber)
+    fun allNotesOff() = nativeAllNotesOff()
+    fun setPitchBend(bendSemitones: Float) = nativeSetPitchBend(bendSemitones)
+    fun setModulation(amount: Float) = nativeSetModulation(amount.coerceIn(0f, 1f))
+    fun setSyncLatencyOffset(latencyMs: Int) = nativeSetSyncLatencyOffset(latencyMs)
+    fun getSyncLatencyOffset(): Int = nativeGetSyncLatencyOffset()
+    fun onMidiClockPulse() = nativeOnMidiClockPulse()
+    fun setMidiClockLocked(locked: Boolean) = nativeSetMidiClockLocked(locked)
 
     /**
      * Polls the real-time audio state from C++.

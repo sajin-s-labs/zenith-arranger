@@ -26,6 +26,13 @@ fun WorkstationPianoRollBar(
     externalActiveNotes: Set<Int> = emptySet(),
     externalPitchBend: Float = 0f,
     externalModulation: Float = 0f,
+    transpose: Int = 0,
+    isTouchKeysEnabled: Boolean = true,
+    isMidiPianoEnabled: Boolean = true,
+    onToggleTouchKeys: () -> Unit = {},
+    onToggleMidiPiano: () -> Unit = {},
+    onNoteDown: (Int) -> Unit = {},
+    onAllNotesUp: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
@@ -38,6 +45,13 @@ fun WorkstationPianoRollBar(
     val effectivePitchBend = if (pitchBend != 0f) pitchBend else externalPitchBend
     val effectiveModulation = if (modulation > 0f) modulation else externalModulation
     val keys = remember(startOctave, octaveSpan) { generatePianoKeys(startOctave, octaveSpan) }
+
+    LaunchedEffect(effectivePitchBend) {
+        PianoSynthEngine.setPitchBend(effectivePitchBend * 2.0f) // +/- 2 semitones
+    }
+    LaunchedEffect(effectiveModulation) {
+        PianoSynthEngine.setModulation(effectiveModulation)
+    }
 
     Row(
         modifier = modifier
@@ -66,7 +80,11 @@ fun WorkstationPianoRollBar(
                 onOctaveDelta = { delta -> startOctave = (startOctave + delta).coerceIn(1, 5) },
                 onSpanDelta = { delta -> octaveSpan = (octaveSpan + delta).coerceIn(1, 3) },
                 pitchBend = effectivePitchBend,
-                modulation = effectiveModulation
+                modulation = effectiveModulation,
+                isTouchKeysEnabled = isTouchKeysEnabled,
+                isMidiPianoEnabled = isMidiPianoEnabled,
+                onToggleTouchKeys = onToggleTouchKeys,
+                onToggleMidiPiano = onToggleMidiPiano
             )
 
             BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth()) {
@@ -79,6 +97,11 @@ fun WorkstationPianoRollBar(
                     pitchBend = effectivePitchBend,
                     modulation = effectiveModulation,
                     externalActiveNotes = externalActiveNotes,
+                    transpose = transpose,
+                    isTouchKeysEnabled = isTouchKeysEnabled,
+                    isMidiPianoEnabled = isMidiPianoEnabled,
+                    onNoteDown = onNoteDown,
+                    onAllNotesUp = onAllNotesUp,
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -93,7 +116,11 @@ private fun KeyboardUtilityHeader(
     onOctaveDelta: (Int) -> Unit,
     onSpanDelta: (Int) -> Unit,
     pitchBend: Float,
-    modulation: Float
+    modulation: Float,
+    isTouchKeysEnabled: Boolean,
+    isMidiPianoEnabled: Boolean,
+    onToggleTouchKeys: () -> Unit,
+    onToggleMidiPiano: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -118,18 +145,48 @@ private fun KeyboardUtilityHeader(
             SmallKeyNavButton("▶") { onOctaveDelta(1) }
         }
 
-        // Pitch & Mod Readout
-        if (pitchBend != 0f || modulation > 0f) {
-            val pbPercent = (pitchBend * 100).toInt()
-            val modPercent = (modulation * 100).toInt()
-            Text("PB: $pbPercent% | MOD: $modPercent%", color = Color(0xFF38BDF8), fontSize = 8.sp, fontWeight = FontWeight.SemiBold)
-        }
-
         // Key Count / Density Zoom
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
             Text("KEYS", color = Color(0xFF8895A5), fontSize = 7.5.sp, fontWeight = FontWeight.Bold)
             SmallKeyNavButton("−") { onSpanDelta(-1) }
             SmallKeyNavButton("+") { onSpanDelta(1) }
+        }
+
+        // On/Off Toggles: Touch Keys & External MIDI Piano
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            // Touch Keys On/Off
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(if (isTouchKeysEnabled) Color(0xFF10B981).copy(alpha = 0.22f) else Color(0xFF1C2230))
+                    .border(0.8.dp, if (isTouchKeysEnabled) Color(0xFF10B981) else Color(0xFF334155), RoundedCornerShape(3.dp))
+                    .clickable { onToggleTouchKeys() }
+                    .padding(horizontal = 4.dp, vertical = 1.dp)
+            ) {
+                Text(
+                    text = if (isTouchKeysEnabled) "TOUCH: ON" else "TOUCH: OFF",
+                    color = if (isTouchKeysEnabled) Color(0xFF34D399) else Color(0xFF94A3B8),
+                    fontSize = 7.5.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            // MIDI Piano On/Off
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(if (isMidiPianoEnabled) Color(0xFF38BDF8).copy(alpha = 0.22f) else Color(0xFF1C2230))
+                    .border(0.8.dp, if (isMidiPianoEnabled) Color(0xFF38BDF8) else Color(0xFF334155), RoundedCornerShape(3.dp))
+                    .clickable { onToggleMidiPiano() }
+                    .padding(horizontal = 4.dp, vertical = 1.dp)
+            ) {
+                Text(
+                    text = if (isMidiPianoEnabled) "MIDI PIANO: ON" else "MIDI PIANO: OFF",
+                    color = if (isMidiPianoEnabled) Color(0xFF38BDF8) else Color(0xFF94A3B8),
+                    fontSize = 7.5.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }

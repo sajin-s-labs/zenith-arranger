@@ -64,7 +64,7 @@ jobs:
         run: |
           TAG_NAME="${{ github.ref_name }}"
           if [ -z "$TAG_NAME" ] || [ "$TAG_NAME" = "main" ]; then
-            TAG_NAME="v0.1.1-alpha"
+            TAG_NAME="v0.1.2-alpha"
           fi
           mkdir -p dist
           cp app/build/outputs/apk/release/app-release.apk "dist/zenith-arranger-${TAG_NAME}.apk"
@@ -76,5 +76,6 @@ jobs:
         with:
           files: dist/*.apk
           name: "Zenith Arranger ${{ github.ref_name }} (Alpha Pre-release)"
+          body_path: RELEASE_NOTES.md
           prerelease: true
           generate_release_notes: true

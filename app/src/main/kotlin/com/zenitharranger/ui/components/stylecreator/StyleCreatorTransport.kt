@@ -129,6 +129,84 @@ fun ClearSampleArmButton(
 }
 
 @Composable
+fun PortraitStyleCreatorTransport(
+    isPlaying: Boolean,
+    isLoadMode: Boolean,
+    isClearMode: Boolean,
+    bpm: Int,
+    onPlayToggle: () -> Unit,
+    onToggleLoadMode: () -> Unit,
+    onToggleClearMode: () -> Unit,
+    onBpmDelta: (Int) -> Unit,
+    onTapTempo: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(6.dp))
+            .background(Color(0xFF0C1018))
+            .border(1.dp, Color(0xFF1B2232), RoundedCornerShape(6.dp))
+            .padding(4.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        // Row 1: Playback & Sample Action Buttons
+        Row(
+            modifier = Modifier.fillMaxWidth().height(30.dp),
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SoftGlowButton(
+                label = if (isPlaying) "■ STOP" else "▶ START",
+                isLit = isPlaying,
+                litColor = Color(0xFF10B981),
+                onClick = onPlayToggle,
+                modifier = Modifier.weight(1.1f).fillMaxHeight()
+            )
+            LoadSampleArmButton(
+                isArmed = isLoadMode,
+                onToggle = onToggleLoadMode,
+                modifier = Modifier.weight(1.4f).fillMaxHeight()
+            )
+            ClearSampleArmButton(
+                isArmed = isClearMode,
+                onToggle = onToggleClearMode,
+                modifier = Modifier.weight(1.4f).fillMaxHeight()
+            )
+        }
+
+        // Row 2: Fully visible Tempo Bar with prominent Scrub Jog Wheel
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(30.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(Color(0xFF141824))
+                .padding(horizontal = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TransportStepBtn("−") { onBpmDelta(-1) }
+            Text("$bpm BPM", color = Color.White, fontSize = 9.5.sp, fontWeight = FontWeight.Bold)
+            TransportStepBtn("+") { onBpmDelta(1) }
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(Color(0xFF232B3C))
+                    .clickable { onTapTempo() }
+                    .padding(horizontal = 5.dp, vertical = 3.dp)
+            ) {
+                Text("TAP", color = Color(0xFFFFB03A), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+            }
+            StyleJogWheel(
+                onScrub = onBpmDelta,
+                modifier = Modifier.weight(1f).height(20.dp)
+            )
+        }
+    }
+}
+
+@Composable
 private fun StyleCreatorTempoControls(bpm: Int, onBpmDelta: (Int) -> Unit, onTapTempo: () -> Unit) {
     Row(
         modifier = Modifier.height(28.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFF141824)).padding(horizontal = 4.dp),
@@ -140,7 +218,7 @@ private fun StyleCreatorTempoControls(bpm: Int, onBpmDelta: (Int) -> Unit, onTap
         Box(Modifier.clip(RoundedCornerShape(3.dp)).background(Color(0xFF232B3C)).clickable { onTapTempo() }.padding(horizontal = 4.dp, vertical = 2.dp)) {
             Text("TAP", color = Color(0xFFFFB03A), fontSize = 8.sp, fontWeight = FontWeight.Bold)
         }
-        StyleJogWheel(onScrub = onBpmDelta)
+        StyleJogWheel(onScrub = onBpmDelta, modifier = Modifier.width(44.dp).height(20.dp))
     }
 }
 
@@ -155,14 +233,12 @@ private fun TransportStepBtn(text: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun StyleJogWheel(onScrub: (Int) -> Unit) {
+fun StyleJogWheel(onScrub: (Int) -> Unit, modifier: Modifier = Modifier) {
     var dragAcc by remember { mutableFloatStateOf(0f) }
     var offset by remember { mutableFloatStateOf(0f) }
 
     Box(
-        modifier = Modifier
-            .width(44.dp)
-            .height(20.dp)
+        modifier = modifier
             .clip(RoundedCornerShape(3.dp))
             .background(Color(0xFF0A0D14))
             .pointerInput(Unit) {

@@ -11,7 +11,9 @@ import kotlinx.coroutines.flow.update
  */
 class MidiInputDispatcher(
     private val onNoteTriggered: (note: Int, velocity: Int) -> Unit = { _, _ -> },
-    private val onNoteReleased: (note: Int) -> Unit = {}
+    private val onNoteReleased: (note: Int) -> Unit = {},
+    private val onPitchBendChanged: (Float) -> Unit = {},
+    private val onModulationChanged: (Float) -> Unit = {}
 ) {
     private val _activeNotes = MutableStateFlow<Set<Int>>(emptySet())
     val activeNotes: StateFlow<Set<Int>> = _activeNotes.asStateFlow()
@@ -75,12 +77,16 @@ class MidiInputDispatcher(
             }
             0xB0 -> { // Control Change
                 if (d1 == 1) { // CC 1 = Modulation Wheel
-                    _modulation.value = (d2.toFloat() / 127f).coerceIn(0f, 1f)
+                    val mod = (d2.toFloat() / 127f).coerceIn(0f, 1f)
+                    _modulation.value = mod
+                    onModulationChanged(mod)
                 }
             }
             0xE0 -> { // Pitch Bend (14-bit)
                 val rawBend = (d2 shl 7) or d1
-                _pitchBend.value = ((rawBend - 8192) / 8192f).coerceIn(-1f, 1f)
+                val bend = ((rawBend - 8192) / 8192f).coerceIn(-1f, 1f)
+                _pitchBend.value = bend
+                onPitchBendChanged(bend)
             }
         }
     }

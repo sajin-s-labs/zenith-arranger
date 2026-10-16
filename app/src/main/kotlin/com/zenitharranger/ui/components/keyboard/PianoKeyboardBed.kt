@@ -26,10 +26,17 @@ fun PianoKeyboardBed(
     pitchBend: Float,
     modulation: Float,
     externalActiveNotes: Set<Int> = emptySet(),
+    transpose: Int = 0,
+    isTouchKeysEnabled: Boolean = true,
+    isMidiPianoEnabled: Boolean = true,
+    onNoteDown: (Int) -> Unit = {},
+    onAllNotesUp: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var activeNotes by remember { mutableStateOf(setOf<Int>()) }
-    val allActiveNotes = remember(activeNotes, externalActiveNotes) { activeNotes + externalActiveNotes }
+    val allActiveNotes = remember(activeNotes, externalActiveNotes, isMidiPianoEnabled) {
+        activeNotes + (if (isMidiPianoEnabled) externalActiveNotes else emptySet())
+    }
     val pitchBendFactor = 2.0.pow((pitchBend.toDouble() * 2.0) / 12.0).toFloat()
 
     val whiteKeys = remember(keys) { keys.filter { !it.isBlack } }
@@ -48,7 +55,8 @@ fun PianoKeyboardBed(
             .clip(RoundedCornerShape(6.dp))
             .background(Color(0xFF0B0E14))
             .border(1.dp, Color(0xFF1B222F), RoundedCornerShape(6.dp))
-            .pointerInput(keys, whiteKeyWidthPx, blackKeyWidthPx) {
+            .pointerInput(keys, whiteKeyWidthPx, blackKeyWidthPx, transpose, isTouchKeysEnabled) {
+                if (!isTouchKeysEnabled) return@pointerInput
                 awaitPointerEventScope {
                     while (true) {
                         val event = awaitPointerEvent()
@@ -63,8 +71,19 @@ fun PianoKeyboardBed(
                         }
 
                         val newlyPressed = currentActive - activeNotes
+                        val newlyReleased = activeNotes - currentActive
+
                         for (note in newlyPressed) {
-                            PianoSynthEngine.playNote(note, pitchBendFactor, modulation)
+                            val transposedNote = (note + transpose).coerceIn(0, 127)
+                            PianoSynthEngine.noteOn(transposedNote, 0.85f)
+                            onNoteDown(transposedNote)
+                        }
+                        for (note in newlyReleased) {
+                            val transposedNote = (note + transpose).coerceIn(0, 127)
+                            PianoSynthEngine.noteOff(transposedNote)
+                        }
+                        if (currentActive.isEmpty() && activeNotes.isNotEmpty()) {
+                            onAllNotesUp()
                         }
                         activeNotes = currentActive
                     }

@@ -42,7 +42,7 @@ fun PortraitStyleCreatorView(
         }
     }
 
-    val beatDurationMs = (60_000f / state.bpm.coerceAtLeast(30f)).toInt()
+    val beatDurationMs = (60_000f / creator.bpm.coerceAtLeast(30f)).toInt()
     val transition = rememberInfiniteTransition(label = "pStyleBlink")
     val blinkAlpha by transition.animateFloat(0.2f, 1.0f, infiniteRepeatable(tween(beatDurationMs / 2, easing = LinearEasing), RepeatMode.Reverse), "blink")
 
@@ -63,16 +63,16 @@ fun PortraitStyleCreatorView(
             savedMessage = savedMessage
         )
 
-        StyleCreatorTransport(
+        PortraitStyleCreatorTransport(
             isPlaying = creator.isPlaying,
             isLoadMode = creator.isLoadMode,
             isClearMode = creator.isClearMode,
             bpm = creator.bpm.toInt(),
-            onPlayToggle = { viewModel.togglePlay() },
+            onPlayToggle = { viewModel.toggleCreatorPlay() },
             onToggleLoadMode = { viewModel.toggleCreatorLoadMode() },
             onToggleClearMode = { viewModel.toggleCreatorClearMode() },
             onBpmDelta = { viewModel.setCreatorBpmDelta(it) },
-            onTapTempo = { viewModel.tapTempo() }
+            onTapTempo = { viewModel.tapCreatorTempo() }
         )
 
         PortraitStyleSectionsContainer(
@@ -81,13 +81,7 @@ fun PortraitStyleCreatorView(
             isLoad = creator.isLoadMode,
             isClear = creator.isClearMode,
             blinkAlpha = blinkAlpha,
-            onTrigger = { secId ->
-                val sec = creator.sections.firstOrNull { it.id == secId }
-                if (sec != null && sec.samplePath.isNotBlank()) {
-                    NativeAudioBridge.addOrUpdateSection(sec.id, sec.name, sec.type.rawValue, sec.bars, sec.samplePath, sec.sampleBpm)
-                    NativeAudioBridge.triggerSection(sec.id)
-                }
-            },
+            onTrigger = { secId -> viewModel.triggerCreatorSection(secId) },
             onAssign = onAssignSample,
             onRemove = { viewModel.removeCreatorSample(it) }
         )
@@ -103,19 +97,19 @@ private fun PortraitStyleSectionsContainer(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)).background(Color(0xFF0C1018)).border(1.dp, Color(0xFF1B2232), RoundedCornerShape(6.dp)).padding(4.dp),
         verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
-        val intros = (1..4).map { CreatorSlotDef("INTRO $it", "sec_intro_$it", ArrangerSectionType.INTRO, 2) }
-        val ends = (1..4).map { CreatorSlotDef("END $it", "sec_end_$it", ArrangerSectionType.ENDING, 2) }
-        val mains = listOf("A", "B", "C", "D").map { CreatorSlotDef("MAIN $it", "sec_main_${it.lowercase()}", ArrangerSectionType.MAIN, 2) }
-        val fills = listOf("A", "B", "C", "D").map { CreatorSlotDef("FILL $it", "sec_fill_${it.lowercase()}", ArrangerSectionType.FILL, 1) }
+        val intros = (1..4).map { CreatorSlotDef("INTRO $it", "intro_$it", ArrangerSectionType.INTRO, 2) }
+        val ends = (1..4).map { CreatorSlotDef("END $it", "ending_$it", ArrangerSectionType.ENDING, 2) }
+        val mains = (1..4).map { CreatorSlotDef("MAIN ${'A' + it - 1}", "main_$it", ArrangerSectionType.MAIN, 2) }
+        val fills = (1..4).map { CreatorSlotDef("FILL ${'A' + it - 1}", "fill_$it", ArrangerSectionType.FILL, 1) }
 
         PortraitRow4(intros, sections, state, isLoad, isClear, blinkAlpha, Color(0xFFA78BFA), onTrigger, onAssign, onRemove)
         PortraitRow4(ends, sections, state, isLoad, isClear, blinkAlpha, Color(0xFFFB923C), onTrigger, onAssign, onRemove)
         PortraitRow4(mains, sections, state, isLoad, isClear, blinkAlpha, Color(0xFF60A5FA), onTrigger, onAssign, onRemove)
         PortraitRow4(fills, sections, state, isLoad, isClear, blinkAlpha, Color(0xFFF472B6), onTrigger, onAssign, onRemove)
 
-        val u14 = (1..4).map { CreatorSlotDef("USER $it", "sec_user_$it", ArrangerSectionType.CUSTOM, 2) }
-        val u57Break = (5..7).map { CreatorSlotDef("USER $it", "sec_user_$it", ArrangerSectionType.CUSTOM, 2) } +
-            listOf(CreatorSlotDef("BREAK", "sec_break", ArrangerSectionType.BREAK, 1))
+        val u14 = (1..4).map { CreatorSlotDef("USER $it", "custom_$it", ArrangerSectionType.CUSTOM, 2) }
+        val u57Break = (5..7).map { CreatorSlotDef("USER $it", "custom_$it", ArrangerSectionType.CUSTOM, 2) } +
+            listOf(CreatorSlotDef("BREAK", "break_1", ArrangerSectionType.BREAK, 1))
 
         PortraitRow4(u14, sections, state, isLoad, isClear, blinkAlpha, Color(0xFF34D399), onTrigger, onAssign, onRemove)
         PortraitRow4(u57Break, sections, state, isLoad, isClear, blinkAlpha, Color(0xFF34D399), onTrigger, onAssign, onRemove)
